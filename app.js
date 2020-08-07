@@ -16,7 +16,7 @@ const cors = require("cors");
  */
 const corsOptions = { origin: process.env.FRONTEND_URL, credentials: true };
 app.use(cors(corsOptions));
-app.use(logger("dev")); // This logs HTTP reponses in the console.
+app.use(logger("production")); // This logs HTTP reponses in the console.
 app.use(express.json()); // Access data sent as json @req.body
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
@@ -66,12 +66,10 @@ app.use((err, req, res, next) => {
   }
 });
 
-if (process.env.NODE_ENV === "production"){
- app.use('*', (req, res, next) => {
- 
- res.sendFile(__dirname + "/public/index.html");
- 
- });
+if (process.env.NODE_ENV === "production") {
+  app.use("*", (req, res, next) => {
+    res.sendFile(__dirname + "/public/index.html");
+  });
 }
 
 module.exports = app;
