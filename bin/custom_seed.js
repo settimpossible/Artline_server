@@ -5,6 +5,8 @@ const filePath = path.join(__dirname, "data_onlineactivities.json");
 const puppeteer = require("puppeteer");
 const cliProgress = require("cli-progress");
 
+var cloudinary = require("cloudinary").v2;
+
 require("dotenv").config();
 require("../config/dbConnection");
 
@@ -14,6 +16,25 @@ const Activity = require("../models/Activity");
 
 const bar1 = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
 
+function uploadToCloudinary(image) {
+  return new Promise((resolve, reject) => {
+    cloudinary.uploader
+      .upload_stream(image, (err, url) => {
+        if (err) return reject(err);
+        return resolve(url);
+      })
+      .end(image);
+  });
+}
+
+const { CLOUDINARY_NAME, CLOUDINARY_KEY, CLOUDINARY_SECRET } = process.env;
+
+cloudinary.config({
+  cloud_name: CLOUDINARY_NAME,
+  api_key: CLOUDINARY_KEY,
+  api_secret: CLOUDINARY_SECRET,
+});
+
 async function getImage(data) {
   console.log("Fetching data of " + data.length + " elements.");
   bar1.start(data.length, 0);
@@ -21,14 +42,15 @@ async function getImage(data) {
   console.log("opening browser");
   const browser = await puppeteer.launch();
   const page = await browser.newPage();
-  const prefix = "data:image/jpeg;base64,";
   for await (let row of data) {
     let { img, url, title, ...rest } = row;
     try {
       await page.goto(url);
-      const base64 = await page.screenshot({ encoding: "base64" });
-      img = prefix + base64;
+      const binary = await page.screenshot({ encoding: "binary" });
+      let res = await uploadToCloudinary(binary);
+      img = res.secure_url;
     } catch (e) {
+      console.log(e.secure_url);
       img = "tbd";
     }
     try {
@@ -55,7 +77,7 @@ async function getData() {
   } catch (e) {
     console.log(e);
   }
-  let data = res.data.records.map(getKeys);
+  let data = res.data.records.filter((_, i) => i > 555).map(getKeys);
   return data;
 }
 

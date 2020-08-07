@@ -3,6 +3,28 @@ const router = express.Router();
 const Activity = require("../models/Activity");
 const User = require("../models/User");
 
+const puppeteer = require("puppeteer");
+var cloudinary = require("cloudinary").v2;
+
+const { CLOUDINARY_NAME, CLOUDINARY_KEY, CLOUDINARY_SECRET } = process.env;
+
+cloudinary.config({
+  cloud_name: CLOUDINARY_NAME,
+  api_key: CLOUDINARY_KEY,
+  api_secret: CLOUDINARY_SECRET,
+});
+
+function uploadToCloudinary(image) {
+  return new Promise((resolve, reject) => {
+    cloudinary.uploader
+      .upload_stream(image, (err, url) => {
+        if (err) return reject(err);
+        return resolve(url);
+      })
+      .end(image);
+  });
+}
+
 router.get("/:id", (req, res, next) => {
   console.log("------");
   console.log("activity");
@@ -60,10 +82,24 @@ router.get("/favorites/", (req, res, next) => {
 //     });
 // });
 
-router.post("/", (req, res, next) => {
-  let { creator, ...rest } = req.body;
-  console.log({ creator });
-  Activity.create(rest)
+router.post("/", async (req, res, next) => {
+  let { creator, url, ...rest } = req.body;
+  console.log(url);
+
+  try {
+    const browser = await puppeteer.launch();
+    const page = await browser.newPage();
+    await page.goto(url);
+    const binary = await page.screenshot({ encoding: "binary" });
+    let response = await uploadToCloudinary(binary);
+    console.log({ response });
+    img = response.secure_url;
+    browser.close();
+  } catch (e) {
+    console.log(e);
+  }
+
+  Activity.create({ url, img, ...rest })
     .then((activity) => {
       let id = activity._id;
       console.log(id);
@@ -134,8 +170,28 @@ router.delete("/:userId/:activityId", (req, res, next) => {
     });
 });
 
-router.patch("/:id", (req, res, next) => {
-  Activity.findByIdAndUpdate(req.params.id, req.body, { new: true })
+router.patch("/:id", async (req, res, next) => {
+  let { creator, url, ...rest } = req.body;
+  console.log(url);
+
+  try {
+    const browser = await puppeteer.launch();
+    const page = await browser.newPage();
+    await page.goto(url);
+    const binary = await page.screenshot({ encoding: "binary" });
+    let response = await uploadToCloudinary(binary);
+    console.log({ response });
+    img = response.secure_url;
+    browser.close();
+  } catch (e) {
+    console.log(e);
+  }
+
+  Activity.findByIdAndUpdate(
+    req.params.id,
+    { creator, url, img, ...rest },
+    { new: true }
+  )
     .then((activities) => {
       res.status(200).json(activities);
     })
