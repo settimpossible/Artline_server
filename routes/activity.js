@@ -8,8 +8,8 @@ router.get("/:id", (req, res, next) => {
   console.log("activity");
 
   Activity.findById(req.params.id)
+    .populate("comments.user")
     .then((activity) => {
-      console.log(activity);
       res.status(200).json(activity);
     })
     .catch((error) => {
