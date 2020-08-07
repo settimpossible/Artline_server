@@ -24,6 +24,7 @@ router.get("/", (req, res, next) => {
       res.status(200).json(activities);
     })
     .catch((error) => {
+      console.log(error);
       res.status(500).json(error);
     });
 });
