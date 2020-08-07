@@ -46,6 +46,8 @@ router.get("/isLoggedIn", (req, res, next) => {
   if (req.session.currentUser) {
     const id = req.session.currentUser._id;
     User.findById(id)
+      .populate("activities")
+      .populate("favorites")
       .then((userDocument) => {
         const userObj = userDocument.toObject();
         delete userObj.password;
