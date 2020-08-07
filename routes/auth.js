@@ -54,9 +54,12 @@ router.get("/isLoggedIn", (req, res, next) => {
         res.status(200).json(userObj);
       })
       .catch((error) => {
+        console.log("---");
+        console.log(error);
         res.status(401).json(error);
       });
   } else {
+    console.log("+++");
     res.status(401).json({ message: "Unauthorized" });
   }
 });
